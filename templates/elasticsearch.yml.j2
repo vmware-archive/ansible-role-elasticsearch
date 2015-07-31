@@ -1,0 +1,16 @@
+cluster:
+  name: {{ cluster_name }}
+node:
+  name: {{ inventory_hostname }}
+network:
+  publish_host: {{ hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address'] }}
+discovery:
+  zen:
+    ping:
+      multicast:
+        enabled: false
+      unicast:
+        hosts:
+{% for host in groups['elasticsearch'] %}
+          - {{ hostvars[host]['ansible_eth0']['ipv4']['address'] }}
+{% endfor %}

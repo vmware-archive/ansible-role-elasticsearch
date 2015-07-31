@@ -1,0 +1,42 @@
+---
+- name: make logstash config dirs
+  file: path={{ elasticsearch_mapped_dir }}/{{ item }} owner=105 state=directory
+  with_items:
+    - config
+    - data
+    - logs
+
+- name: Set up elasticsearch.yml
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ elasticsearch_mapped_dir }}/config/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - elasticsearch.yml
+    - logging.yml
+  notify: restart elasticsearch
+
+- name: docker run elasticsearch server
+  docker:
+    docker_api_version: "{{ docker_api_version }}"
+    name: elasticsearch
+    image: elasticsearch
+    command: elasticsearch
+    memory_limit: "{{ memory_limit }}"
+    state: started
+    expose:
+      - 9200
+      - 9300
+    ports:
+      - 9200:9200
+      - 9300:9300
+    volumes:
+      - "{{ elasticsearch_mapped_dir }}/data:/usr/share/elasticsearch/data"
+      - "{{ elasticsearch_mapped_dir }}/config:/usr/share/elasticsearch/config"
+      - "{{ elasticsearch_mapped_dir }}/logs:/usr/share/elasticsearch/logs"
+# docker run  -d  -p 9200:9200 -p 9300:9300 -v "$PWD/esdata":/usr/share/elasticsearch/data  -v "$PWD/config":/usr/share/elasticsearch/config elasticsearch elasticsearch   -Dcluster.name=elasticsearch_production -Dnode.name=elasticsearch_005_data
+# this is an alternative to above
+#- name: docker cmdline
+#  shell: docker run  -d -p {{ logstash_container_port }}:8514/udp  -v /var/lib/logstash/:/config-dir logstash logstash -f /config-dir/logstash.conf

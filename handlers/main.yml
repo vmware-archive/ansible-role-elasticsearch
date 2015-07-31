@@ -1,0 +1,9 @@
+---
+- name: restart elasticsearch
+  docker:
+    name: elasticsearch
+    image: elasticsearch
+    state: restarted
+    docker_api_version: "{{ docker_api_version }}"
+
+
