@@ -1,42 +1,48 @@
 ---
-- name: make logstash config dirs
-  file: path={{ elasticsearch_mapped_dir }}/{{ item }} owner=105 state=directory
-  with_items:
-    - config
-    - data
-    - logs
+- name: create docker build dir
+  file: state=directory path={{ elasticsearch_docker_build }}
 
-- name: Set up elasticsearch.yml
-  template:
-    src: "{{ item }}.j2"
-    dest: "{{ elasticsearch_mapped_dir }}/config/{{ item }}"
-    owner: root
-    group: root
-    mode: 0644
-  with_items:
-    - elasticsearch.yml
-    - logging.yml
-  notify: restart elasticsearch
+- name: sync the docker image src to remote nodes
+  copy: src=../../../containers/docker/elasticsearch/ dest={{ elasticsearch_docker_build }} mode=755
+  tags:
+    - rsync
+
+- name: build the image
+  shell: cd {{ elasticsearch_docker_build }} && /bin/bash ./build.sh
 
 - name: docker run elasticsearch server
   docker:
     docker_api_version: "{{ docker_api_version }}"
     name: elasticsearch
-    image: elasticsearch
+    image: "{{ elasticsearch_docker_image }}"
     command: elasticsearch
     memory_limit: "{{ memory_limit }}"
-    state: started
+    restart_policy: always
+    state: reloaded
+    env:
+      PUBLISHHOST: "{{ hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address'] }}"
+      CLUSTERNAME: "{{ elasticsearch_cluster_name }}"
+      LOGLEVEL: "{{ elasticsearch_log_level }}"
     expose:
       - 9200
       - 9300
     ports:
+      # we bind to the standard ports on the host,
+      # means we can only run one ES instance per host, but
+      # until I learn a way to inform the ES service about it's
+      # mapped port, we must.
       - 9200:9200
       - 9300:9300
-    volumes:
-      - "{{ elasticsearch_mapped_dir }}/data:/usr/share/elasticsearch/data"
-      - "{{ elasticsearch_mapped_dir }}/config:/usr/share/elasticsearch/config"
-      - "{{ elasticsearch_mapped_dir }}/logs:/usr/share/elasticsearch/logs"
-# docker run  -d  -p 9200:9200 -p 9300:9300 -v "$PWD/esdata":/usr/share/elasticsearch/data  -v "$PWD/config":/usr/share/elasticsearch/config elasticsearch elasticsearch   -Dcluster.name=elasticsearch_production -Dnode.name=elasticsearch_005_data
-# this is an alternative to above
-#- name: docker cmdline
-#  shell: docker run  -d -p {{ logstash_container_port }}:8514/udp  -v /var/lib/logstash/:/config-dir logstash logstash -f /config-dir/logstash.conf
+# left here as a note that these volumes are exposed on the image
+# might need that info for backups later.
+#    volumes:
+#      - "{{ elasticsearch_mapped_dir }}/data:/usr/share/elasticsearch/data"
+#      - "{{ elasticsearch_mapped_dir }}/config:/usr/share/elasticsearch/config"
+#      - "{{ elasticsearch_mapped_dir }}/logs:/usr/share/elasticsearch/logs"
+
+
+- name: test health
+  shell: curl -XGET 'http://localhost:9200/_cluster/health?pretty=true'
+  register: health
+
+- debug: msg="{{ health.stdout }}"

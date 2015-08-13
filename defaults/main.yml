@@ -1,2 +1,6 @@
 # use 512MB, type string, or 0 for unlimited
 memory_limit: 0MB
+elasticsearch_docker_build: /tmp/elasticsearch
+elasticsearch_docker_image: vmware-opencloud/elasticsearch
+elasticsearch_cluster_name: default_clustername
+elasticsearch_log_level: INFO
