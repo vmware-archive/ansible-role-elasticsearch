@@ -11,6 +11,7 @@
     - ../../../../containers/docker/elasticsearch/*
 
 - name: build the image
+  async: 1000
   shell: cd {{ elasticsearch_docker_build }} && /bin/bash ./build.sh
 
 - name: docker run elasticsearch server
@@ -43,9 +44,11 @@
 #      - "{{ elasticsearch_mapped_dir }}/config:/usr/share/elasticsearch/config"
 #      - "{{ elasticsearch_mapped_dir }}/logs:/usr/share/elasticsearch/logs"
 
+- name: wait for elastic search to start
+  wait_for: port=9200 delay=1
 
 - name: test health
-  shell: curl -XGET 'http://localhost:9200/_cluster/health?pretty=true'
+  shell: curl --retry 3 --retry-delay 5 -XGET 'http://localhost:9200/_cluster/health?pretty=true'
   register: health
 
 - debug: msg="{{ health.stdout }}"
