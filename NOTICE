@@ -1,4 +1,5 @@
-{#
+COPYRIGHT AND LICENSE
+
    Copyright 2015 VMware, Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,20 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-#} 
-cluster:
-  name: {{ cluster_name }}
-node:
-  name: {{ inventory_hostname }}
-network:
-  publish_host: {{ hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address'] }}
-discovery:
-  zen:
-    ping:
-      multicast:
-        enabled: false
-      unicast:
-        hosts:
-{% for host in groups['elasticsearch'] %}
-          - {{ hostvars[host]['ansible_eth0']['ipv4']['address'] }}
-{% endfor %}
+ 
+ 
+THIRD PARTY NOTICES:
