@@ -14,7 +14,7 @@ This role currently requires a working VMware Photon server with enabled Docker 
 
 ```
 ---
-- hosts: supercna
+- hosts: elasticsearch
   sudo: True
   roles:
     - elasticsearch
